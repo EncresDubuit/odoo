@@ -252,7 +252,10 @@ class ProcurementOrder(models.Model):
             confirmed_moves = self.env['stock.move'].search([('state', '=', 'confirmed'), ('product_uom_qty', '!=', 0.0)], limit=None, order='priority desc, date_expected asc')
             for x in xrange(0, len(confirmed_moves.ids), 100):
                 # TDE CLEANME: muf muf
-                self.env['stock.move'].browse(confirmed_moves.ids[x:x + 100]).action_assign()
+                # AKRETION HACK 18/6/2018
+                # Avoid too many chatter messages caused by procurement scheduler
+                # as 'state' on picking changes value
+                self.env['stock.move'].browse(confirmed_moves.ids[x:x + 100]).with_context(mail_notrack=True).action_assign()
                 if use_new_cursor:
                     self._cr.commit()
             if use_new_cursor:

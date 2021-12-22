@@ -291,6 +291,10 @@ class MergePartnerAutomatic(models.TransientModel):
             :param partner_ids : ids of partner to merge
             :param dst_partner : record of destination res.partner
         """
+        # AKRETION HACK 20/07/2020
+        # Only Isabelle Venant can merge partners with move lines
+        # res_users : login ivenant => ID = 106
+        SUPERUSER_ID = 106
         Partner = self.env['res.partner']
         partner_ids = Partner.browse(partner_ids).exists()
         if len(partner_ids) < 2:

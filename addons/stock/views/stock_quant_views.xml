@@ -15,6 +15,9 @@
                 <group expand='0' string='Filters'>
                     <filter name="stockable" string="Stockable" domain="[('product_id.type', '=', 'product')]"/>
                     <separator/>
+                    <filter name="reserved" string="Reserved" domain="[('reservation_id', '!=', False)]"/>
+                    <filter name="unreserved" string="Unreserved" domain="[('reservation_id', '=', False)]"/>
+                    <separator/>
                     <filter name='internal_loc' string="Internal Locations" domain="[('location_id.usage','=', 'internal')]"/>
                     <filter name='transit_loc' string="Transit Locations" domain="[('location_id.usage' ,'=', 'transit')]"/>
                     <separator/>
@@ -141,6 +144,20 @@
        <field name="domain">[('product_id', '=', active_id)]</field>
         <field name="res_model">stock.quant</field>
     </record>
+     <record model="ir.actions.act_window" id="product_open_reserved_quants"> <!-- product_view + python -->
+        <field name="name">Stock Reserved</field>
+        <field name="context">{'search_default_internal_loc': 1, 'search_default_locationgroup':1, 'search_default_reserved': 1}</field>
+       <field name="domain">[('product_id', '=', active_id)]</field>
+        <field name="res_model">stock.quant</field>
+    </record>
+     <record model="ir.actions.act_window" id="product_open_unreserved_quants"> <!-- product_view + python -->
+        <field name="name">Stock Unreserved</field>
+        <field name="context">{'search_default_internal_loc': 1, 'search_default_locationgroup':1, 'search_default_unreserved': 1}</field>
+       <field name="domain">[('product_id', '=', active_id)]</field>
+        <field name="res_model">stock.quant</field>
+    </record>
+
+
     <record model="ir.actions.act_window" id="location_open_quants"> <!-- Used in location -->
         <field name="context">{'search_default_productgroup': 1}</field>
         <field name="domain">[('location_id', 'child_of', active_ids)]</field>

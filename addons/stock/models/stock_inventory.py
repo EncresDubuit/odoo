@@ -224,7 +224,7 @@ class Inventory(models.Model):
     def _get_inventory_lines_values(self):
         # TDE CLEANME: is sql really necessary ? I don't think so
         locations = self.env['stock.location'].search([('id', 'child_of', [self.location_id.id])])
-        domain = ' location_id in %s AND active = TRUE'
+        domain = " stock_quant.location_id in %s AND product_product.active = TRUE AND type = 'product'"
         args = (tuple(locations.ids),)
 
         vals = []
@@ -236,7 +236,7 @@ class Inventory(models.Model):
 
         # case 0: Filter on company
         if self.company_id:
-            domain += ' AND company_id = %s'
+            domain += ' AND stock_quant.company_id = %s'
             args += (self.company_id.id,)
         
         #case 1: Filter on One owner only or One product for a specific owner
@@ -263,12 +263,14 @@ class Inventory(models.Model):
             args += (categ_products.ids,)
             products_to_filter |= categ_products
 
-        self.env.cr.execute("""SELECT product_id, sum(qty) as product_qty, location_id, lot_id as prod_lot_id, package_id, owner_id as partner_id
+        self.env.cr.execute("""SELECT product_id, sum(qty) as product_qty, stock_quant.location_id, lot_id as prod_lot_id, package_id, owner_id as partner_id
             FROM stock_quant
             LEFT JOIN product_product
             ON product_product.id = stock_quant.product_id
+            LEFT JOIN product_template
+            ON product_template.id = product_product.product_tmpl_id
             WHERE %s
-            GROUP BY product_id, location_id, lot_id, package_id, partner_id """ % domain, args)
+            GROUP BY product_id, stock_quant.location_id, lot_id, package_id, partner_id """ % domain, args)
 
         for product_data in self.env.cr.dictfetchall():
             # replace the None the dictionary by False, because falsy values are tested later on

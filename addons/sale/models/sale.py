@@ -296,7 +296,7 @@ class SaleOrder(models.Model):
             'currency_id': self.pricelist_id.currency_id.id,
             'comment': self.note,
             'payment_term_id': self.payment_term_id.id,
-            'fiscal_position_id': self.fiscal_position_id.id or self.partner_invoice_id.property_account_position_id.id,
+            'fiscal_position_id': self.fiscal_position_id.id,
             'company_id': self.company_id.id,
             'user_id': self.user_id and self.user_id.id,
             'team_id': self.team_id.id
@@ -628,7 +628,7 @@ class SaleOrderLine(models.Model):
     @api.multi
     def _compute_tax_id(self):
         for line in self:
-            fpos = line.order_id.fiscal_position_id or line.order_id.partner_id.property_account_position_id
+            fpos = line.order_id.fiscal_position_id
             # If company_id is set, always filter taxes by the company
             taxes = line.product_id.taxes_id.filtered(lambda r: not line.company_id or r.company_id == line.company_id)
             line.tax_id = fpos.map_tax(taxes, line.product_id, line.order_id.partner_shipping_id) if fpos else taxes
@@ -724,6 +724,9 @@ class SaleOrderLine(models.Model):
                     msg = ""
                     if any([values['product_uom_qty'] < x.product_uom_qty for x in order_lines]):
                         msg += "<b>" + _('The ordered quantity has been decreased. Do not forget to take it into account on your invoices and delivery orders.') + '</b>'
+                        # AKRETION HACK 29/6/2018
+                        raise UserError(
+                            u"La quantité commandée a été diminuée pour un ou plusieurs articles. Diminuer la quantité commandée sur une commande confirmée n'est pas autorisé ; seule l'augmentation de la quantité est possible. Si rien n'a été livré, vous avez intérêt à annuler la commande, la remettre en brouillon et la reconfirmer. Si une livraison partielle a déjà eu lieu, vous avez intérêt à prévenir le magasin de ne pas tout livrer et de ne pas faire de reliquat lors de la dernière livraison.")
                     msg += "<ul>"
                     for line in order_lines:
                         msg += "<li> %s:" % (line.product_id.display_name,)
@@ -824,7 +827,7 @@ class SaleOrderLine(models.Model):
             raise UserError(_('Please define income account for this product: "%s" (id:%d) - or for its category: "%s".') %
                 (self.product_id.name, self.product_id.id, self.product_id.categ_id.name))
 
-        fpos = self.order_id.fiscal_position_id or self.order_id.partner_id.property_account_position_id
+        fpos = self.order_id.fiscal_position_id
         if fpos:
             account = fpos.map_account(account)
 

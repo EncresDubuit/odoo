@@ -72,6 +72,23 @@ class Product(models.Model):
              "any of its children.\n"
              "Otherwise, this includes goods leaving any Stock "
              "Location with 'internal' type.")
+    unreserved_qty_available = fields.Float(
+        compute='_compute_quantities',
+        digits=dp.get_precision('Product Unit of Measure'),
+        search='_search_unreserved_qty_available',
+        string=u'Quantité disponible',
+        help=u"Quantité disponible = stock réel - quantité réservée")
+    reserved_qty = fields.Float(
+        compute='_compute_quantities',
+        digits=dp.get_precision('Product Unit of Measure'),
+        search='_search_reserved_qty',
+        string=u'Quantité réservée')
+    missing_qty = fields.Float(
+        compute='_compute_quantities',
+        digits=dp.get_precision('Product Unit of Measure'),
+        search='_search_missing_qty',
+        string=u'Quantité manquante',
+        help=u"Quantité manquante = sortant - quantité réservée")
     # TDE CLEANME: unused except in one test
     orderpoint_ids = fields.One2many('stock.warehouse.orderpoint', 'product_id', 'Minimum Stock Rules')
     nbr_reordering_rules = fields.Integer('Reordering Rules', compute='_compute_nbr_reordering_rules')
@@ -106,6 +123,9 @@ class Product(models.Model):
             product.incoming_qty = res[product.id]['incoming_qty']
             product.outgoing_qty = res[product.id]['outgoing_qty']
             product.virtual_available = res[product.id]['virtual_available']
+            product.reserved_qty = res[product.id]['reserved_qty']
+            product.unreserved_qty_available = res[product.id]['unreserved_qty_available']
+            product.missing_qty = res[product.id]['missing_qty']
 
     @api.multi
     def _product_available(self, field_names=None, arg=False):
@@ -140,6 +160,8 @@ class Product(models.Model):
             domain_move_in += [('date', '<=', to_date)]
             domain_move_out += [('date', '<=', to_date)]
 
+        domain_quant_out_reserved = domain_quant + [('reservation_id', '!=', False)]
+
         Move = self.env['stock.move']
         Quant = self.env['stock.quant']
         domain_move_in_todo = [('state', 'not in', ('done', 'cancel', 'draft'))] + domain_move_in
@@ -147,6 +169,7 @@ class Product(models.Model):
         moves_in_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_in_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
         moves_out_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_out_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
         quants_res = dict((item['product_id'][0], item['qty']) for item in Quant.read_group(domain_quant, ['product_id', 'qty'], ['product_id'], orderby='id'))
+        quants_out_reserved_res = dict((item['product_id'][0], item['qty']) for item in Quant.read_group(domain_quant_out_reserved, ['product_id', 'qty'], ['product_id'], orderby='id'))
         if dates_in_the_past:
             # Calculate the moves that were done before now to calculate back in time (as most questions will be recent ones)
             domain_move_in_done = [('state', '=', 'done'), ('date', '>', to_date)] + domain_move_in_done
@@ -159,15 +182,20 @@ class Product(models.Model):
             res[product.id] = {}
             if dates_in_the_past:
                 qty_available = quants_res.get(product.id, 0.0) - moves_in_res_past.get(product.id, 0.0) + moves_out_res_past.get(product.id, 0.0)
+                reserved_qty = 0.0  # TODO
             else:
                 qty_available = quants_res.get(product.id, 0.0)
+                reserved_qty = quants_out_reserved_res.get(product.id, 0.0)
+            outgoing_qty = moves_out_res.get(product.id, 0.0)
             res[product.id]['qty_available'] = float_round(qty_available, precision_rounding=product.uom_id.rounding)
             res[product.id]['incoming_qty'] = float_round(moves_in_res.get(product.id, 0.0), precision_rounding=product.uom_id.rounding)
-            res[product.id]['outgoing_qty'] = float_round(moves_out_res.get(product.id, 0.0), precision_rounding=product.uom_id.rounding)
+            res[product.id]['outgoing_qty'] = float_round(outgoing_qty, precision_rounding=product.uom_id.rounding)
             res[product.id]['virtual_available'] = float_round(
                 qty_available + res[product.id]['incoming_qty'] - res[product.id]['outgoing_qty'],
                 precision_rounding=product.uom_id.rounding)
-
+            res[product.id]['reserved_qty'] = float_round(reserved_qty, precision_rounding=product.uom_id.rounding)
+            res[product.id]['unreserved_qty_available'] = float_round(qty_available - reserved_qty, precision_rounding=product.uom_id.rounding)
+            res[product.id]['missing_qty'] = float_round(outgoing_qty - reserved_qty, precision_rounding=product.uom_id.rounding)
         return res
 
     def _get_domain_locations(self):
@@ -251,10 +279,19 @@ class Product(models.Model):
         # TDE FIXME: should probably clean the search methods
         return self._search_product_quantity(operator, value, 'outgoing_qty')
 
+    def _search_unreserved_qty_available(self, operator, value):
+        return self._search_product_quantity(operator, value, 'unreserved_qty_available')
+
+    def _search_reserved_qty(self, operator, value):
+        return self._search_product_quantity(operator, value, 'reserved_qty')
+
+    def _search_missing_qty(self, operator, value):
+        return self._search_product_quantity(operator, value, 'missing_qty')
+
     def _search_product_quantity(self, operator, value, field):
         # TDE FIXME: should probably clean the search methods
         # to prevent sql injections
-        if field not in ('qty_available', 'virtual_available', 'incoming_qty', 'outgoing_qty'):
+        if field not in ('qty_available', 'virtual_available', 'incoming_qty', 'outgoing_qty', 'unreserved_qty_available', 'reserved_qty', 'missing_qty'):
             raise UserError(_('Invalid domain left operand %s') % field)
         if operator not in ('<', '>', '=', '!=', '<=', '>='):
             raise UserError(_('Invalid domain operator %s') % operator)
@@ -429,6 +466,18 @@ class ProductTemplate(models.Model):
     outgoing_qty = fields.Float(
         'Outgoing', compute='_compute_quantities', search='_search_outgoing_qty',
         digits=dp.get_precision('Product Unit of Measure'))
+    unreserved_qty_available = fields.Float(
+        u'Quantité disponible', compute='_compute_quantities',
+        search='_search_unreserved_qty_available',
+        digits=dp.get_precision('Product Unit of Measure'))
+    reserved_qty = fields.Float(
+        u'Quantité réservée', compute='_compute_quantities',
+        search='_search_reserved_qty',
+        digits=dp.get_precision('Product Unit of Measure'))
+    missing_qty = fields.Float(
+        u'Quantité manquante', compute='_compute_quantities',
+        search='_search_missing_qty',
+        digits=dp.get_precision('Product Unit of Measure'))
     location_id = fields.Many2one('stock.location', 'Location')
     warehouse_id = fields.Many2one('stock.warehouse', 'Warehouse')
     route_ids = fields.Many2many(
@@ -455,6 +504,9 @@ class ProductTemplate(models.Model):
             template.virtual_available = res[template.id]['virtual_available']
             template.incoming_qty = res[template.id]['incoming_qty']
             template.outgoing_qty = res[template.id]['outgoing_qty']
+            template.unreserved_qty_available = res[template.id]['unreserved_qty_available']
+            template.reserved_qty = res[template.id]['reserved_qty']
+            template.missing_qty = res[template.id]['missing_qty']
 
     def _product_available(self, name, arg):
         return self._compute_quantities_dict()
@@ -468,16 +520,21 @@ class ProductTemplate(models.Model):
             virtual_available = 0
             incoming_qty = 0
             outgoing_qty = 0
+            reserved_qty = 0
             for p in template.product_variant_ids:
                 qty_available += variants_available[p.id]["qty_available"]
                 virtual_available += variants_available[p.id]["virtual_available"]
                 incoming_qty += variants_available[p.id]["incoming_qty"]
                 outgoing_qty += variants_available[p.id]["outgoing_qty"]
+                reserved_qty += variants_available[p.id]["reserved_qty"]
             prod_available[template.id] = {
                 "qty_available": qty_available,
                 "virtual_available": virtual_available,
                 "incoming_qty": incoming_qty,
                 "outgoing_qty": outgoing_qty,
+                "reserved_qty": reserved_qty,
+                "unreserved_qty_available": qty_available - reserved_qty,
+                "missing_qty": outgoing_qty - reserved_qty,
             }
         return prod_available
 
@@ -498,6 +555,21 @@ class ProductTemplate(models.Model):
 
     def _search_outgoing_qty(self, operator, value):
         domain = [('outgoing_qty', operator, value)]
+        product_variant_ids = self.env['product.product'].search(domain)
+        return [('product_variant_ids', 'in', product_variant_ids.ids)]
+
+    def _search_unreserved_qty_available(self, operator, value):
+        domain = [('unreserved_qty_available', operator, value)]
+        product_variant_ids = self.env['product.product'].search(domain)
+        return [('product_variant_ids', 'in', product_variant_ids.ids)]
+
+    def _search_reserved_qty(self, operator, value):
+        domain = [('reserved_qty', operator, value)]
+        product_variant_ids = self.env['product.product'].search(domain)
+        return [('product_variant_ids', 'in', product_variant_ids.ids)]
+
+    def _search_missing_qty(self, operator, value):
+        domain = [('missing_qty', operator, value)]
         product_variant_ids = self.env['product.product'].search(domain)
         return [('product_variant_ids', 'in', product_variant_ids.ids)]
 

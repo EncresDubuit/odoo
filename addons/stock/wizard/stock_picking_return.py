@@ -97,11 +97,16 @@ class ReturnPicking(models.TransientModel):
 
         # create new picking for returned products
         picking_type_id = picking.picking_type_id.return_picking_type_id.id or picking.picking_type_id.id
+        # AKRETION 24/01/2010
+        # we want to see the order name in a return picking
+        origin = picking.name
+        if picking.origin:
+            origin = '%s-%s' % (picking.origin, picking.name)
         new_picking = picking.copy({
             'move_lines': [],
             'picking_type_id': picking_type_id,
             'state': 'draft',
-            'origin': picking.name,
+            'origin': origin,
             'location_id': picking.location_dest_id.id,
             'location_dest_id': self.location_id.id})
         new_picking.message_post_with_view('mail.message_origin_link',

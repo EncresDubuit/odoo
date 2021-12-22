@@ -34,8 +34,10 @@ class SaleOrder(models.Model):
     @api.multi
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
-        for so in self:
-            so.invoice_shipping_on_delivery = all([not line.is_delivery for line in so.order_line])
+        # AKRETION HACK 29/6/2018
+        # Don't auto-set invoice_shipping_on_delivery upon SO validation
+        #for so in self:
+        #    so.invoice_shipping_on_delivery = all([not line.is_delivery for line in so.order_line])
         return res
 
     @api.multi

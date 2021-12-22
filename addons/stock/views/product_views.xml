@@ -37,6 +37,8 @@
                 </tree>
                 <field name="price" position="after">
                     <field name="qty_available"/>
+                    <field name="unreserved_qty_available" string="Qté dispo"/>
+                    <field name="reserved_qty" string="Qté réservée"/>
                     <field name="virtual_available"/>
                 </field>
             </field>
@@ -53,6 +55,8 @@
                 </tree>
                 <field name="uom_id" position="before">
                     <field name="qty_available"/>
+                    <field name="unreserved_qty_available" string="Qté dispo"/>
+                    <field name="reserved_qty" string="Qté réservée"/>
                     <field name="virtual_available"/>
                 </field>
             </field>
@@ -207,7 +211,8 @@
         </record>
 
         <!-- Product Variant -->
-
+        <!-- AKRETION HACK 2/7/2018
+        Bug https://github.com/odoo/odoo/pull/25571/files
         <record id="product_search_form_view_stock" model="ir.ui.view">
             <field name="name">product.search.stock.form</field>
             <field name="model">product.product</field>
@@ -219,6 +224,7 @@
                 </field>
             </field>
         </record>
+        -->
 
         <record model="ir.ui.view" id="product_kanban_stock_view">
             <field name="name">Product Kanban Stock</field>
@@ -284,6 +290,41 @@
                                type="action" attrs="{'invisible':[('type', '!=', 'product')]}">
                             <field name="qty_available" widget="statinfo" string="On Hand"/>
                         </button>
+                        <button type="action"
+                            name="%(product_open_reserved_quants)d"
+                            attrs="{'invisible':[('type', '!=', 'product')]}"
+                            class="oe_stat_button" icon="fa-building-o">
+                            <div class="o_form_field o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="reserved_qty" widget="statinfo" nolabel="1"/>
+                                </span>
+                                <span class="o_stat_text">Réservé</span>
+                            </div>
+                        </button>
+                        <button type="action"
+                            name="%(product_open_unreserved_quants)d"
+                            attrs="{'invisible':[('type', '!=', 'product')]}"
+                            class="oe_stat_button" icon="fa-building-o">
+                            <div class="o_form_field o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="unreserved_qty_available" widget="statinfo" nolabel="1"/>
+                                </span>
+                                <span class="o_stat_text">Disponible</span>
+                            </div>
+                        </button>
+                        <button type="action"
+                            name="%(product_open_out_moves_without_reservation)d"
+                            attrs="{'invisible':[('type', '!=', 'product')]}"
+                            class="oe_stat_button" icon="fa-building-o">
+                            <div class="o_form_field o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="missing_qty" widget="statinfo" nolabel="1"/>
+                                </span>
+                                <span class="o_stat_text">Manquant</span>
+                            </div>
+                        </button>
+
+
                         <button type="action"
                             name="%(stock.action_stock_level_forecast_report_product)d"
                             attrs="{'invisible':[('type', '!=', 'product')]}"

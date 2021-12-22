@@ -140,11 +140,11 @@ class StockHistory(models.Model):
                     product_product ON product_product.id = stock_move.product_id
                 JOIN
                     product_template ON product_template.id = product_product.product_tmpl_id
-                WHERE quant.qty>0 AND stock_move.state = 'done' AND dest_location.usage in ('internal', 'transit')
+                WHERE quant.qty>0 AND stock_move.state = 'done' AND dest_location.usage in ('internal', 'transit', 'view')
                 AND (
                     not (source_location.company_id is null and dest_location.company_id is null) or
                     source_location.company_id != dest_location.company_id or
-                    source_location.usage not in ('internal', 'transit'))
+                    source_location.usage not in ('internal', 'transit', 'view'))
                 ) UNION ALL
                 (SELECT
                     (-1) * stock_move.id AS id,
@@ -175,11 +175,11 @@ class StockHistory(models.Model):
                     product_product ON product_product.id = stock_move.product_id
                 JOIN
                     product_template ON product_template.id = product_product.product_tmpl_id
-                WHERE quant.qty>0 AND stock_move.state = 'done' AND source_location.usage in ('internal', 'transit')
+                WHERE quant.qty>0 AND stock_move.state = 'done' AND source_location.usage in ('internal', 'transit', 'view')
                 AND (
                     not (dest_location.company_id is null and source_location.company_id is null) or
                     dest_location.company_id != source_location.company_id or
-                    dest_location.usage not in ('internal', 'transit'))
+                    dest_location.usage not in ('internal', 'transit', 'view'))
                 ))
                 AS foo
                 GROUP BY move_id, location_id, company_id, product_id, product_categ_id, date, source, product_template_id
