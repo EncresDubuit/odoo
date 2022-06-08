@@ -196,8 +196,10 @@ class SequenceMixin(models.AbstractModel):
             regex = self._sequence_monthly_regex
 
         format_values = re.match(regex, previous).groupdict()
-        format_values['seq_length'] = len(format_values['seq'])
-        format_values['year_length'] = len(format_values.get('year', ''))
+        #HACK Nuxly - Start - Bug https://github.com/EncresDubuit/encresdubuit/issues/320
+        format_values['seq_length'] = format_values.get('seq') and len(format_values.get('seq')) or 0
+        format_values['year_length'] = format_values.get('year') and len(format_values.get('year')) or 0
+        #HACK Nuxly - End
         if not format_values.get('seq') and 'prefix1' in format_values and 'suffix' in format_values:
             # if we don't have a seq, consider we only have a prefix and not a suffix
             format_values['prefix1'] = format_values['suffix']
