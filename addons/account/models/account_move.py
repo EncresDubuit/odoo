@@ -16,6 +16,10 @@ import json
 import re
 import warnings
 
+import logging
+logger = logging.getLogger(__name__)
+import traceback
+
 #forbidden fields
 INTEGRITY_HASH_MOVE_FIELDS = ('date', 'journal_id', 'company_id')
 INTEGRITY_HASH_LINE_FIELDS = ('debit', 'credit', 'account_id', 'partner_id')
@@ -1273,13 +1277,16 @@ class AccountMove(models.Model):
 
         if not relaxed:
             domain = [('journal_id', '=', self.journal_id.id), ('id', '!=', self.id or self._origin.id), ('name', 'not in', ('/', '', False))]
+            logger.debug("_FD_ - _get_last_sequence_domain DEBUT domain=%r", domain)
             if self.journal_id.refund_sequence:
                 refund_types = ('out_refund', 'in_refund')
                 domain += [('move_type', 'in' if self.move_type in refund_types else 'not in', refund_types)]
             reference_move_name = self.search(domain + [('date', '<=', self.date)], order='date desc', limit=1).name
+            logger.debug("_FD_ - _get_last_sequence_domain 1-reference_move_name=%r", reference_move_name)
             if not reference_move_name:
                 reference_move_name = self.search(domain, order='date asc', limit=1).name
             sequence_number_reset = self._deduce_sequence_number_reset(reference_move_name)
+            logger.debug("_FD_ - _get_last_sequence_domain 2-reference_move_name=%r", reference_move_name)            
             if sequence_number_reset == 'year':
                 where_string += " AND date_trunc('year', date::timestamp without time zone) = date_trunc('year', %(date)s) "
                 param['date'] = self.date
@@ -1293,11 +1300,15 @@ class AccountMove(models.Model):
             if param.get('anti_regex') and not self.journal_id.sequence_override_regex:
                 where_string += " AND sequence_prefix !~ %(anti_regex)s "
 
+            logger.debug("_FD_ - _get_last_sequence_domain param=%r - where_string=%r", param, where_string)
+
         if self.journal_id.refund_sequence:
             if self.move_type in ('out_refund', 'in_refund'):
                 where_string += " AND move_type IN ('out_refund', 'in_refund') "
             else:
                 where_string += " AND move_type NOT IN ('out_refund', 'in_refund') "
+
+        logger.debug("_FD_ - _get_last_sequence_domain FIN param=%r - where_string=%r", param, where_string)
 
         return where_string, param
 
@@ -2931,6 +2942,7 @@ class AccountMove(models.Model):
         return 'account.report_invoice_document'
 
     def preview_invoice(self):
+        logger.info("test de prévisualisation des livres des grands tiers ... preview_invoice")
         self.ensure_one()
         return {
             'type': 'ir.actions.act_url',
@@ -2999,6 +3011,7 @@ class AccountMove(models.Model):
 
     @api.model
     def _move_dict_to_preview_vals(self, move_vals, currency_id=None):
+        logger.info("test de prévisualisation des livres des grands tiers ... _move_dict_to_preview_vals")
         preview_vals = {
             'group_name': "%s, %s" % (format_date(self.env, move_vals['date']) or _('[Not set]'), move_vals['ref']),
             'items_vals': move_vals['line_ids'],
@@ -5085,6 +5098,7 @@ class AccountMoveLine(models.Model):
         return action
 
     def action_automatic_entry(self):
+        logger.info("test de prévisualisation des livres des grands tiers ... action_automatic_entry")
         action = self.env['ir.actions.act_window']._for_xml_id('account.account_automatic_entry_wizard_action')
         # Force the values of the move line in the context to avoid issues
         ctx = dict(self.env.context)
