@@ -28,7 +28,7 @@ const ForecastWidgetField = AbstractField.extend({
                 this.record.fields.forecast_expected_date
             ),
         });
-        if (data.forecast_expected_date && data.date_deadline) {
+        if (data.forecast_expected_date && data.date_deadline && data.state != 'draft') {
             data.forecast_is_late = data.forecast_expected_date > data.date_deadline;
         }
         data.will_be_fulfilled = utils.round_decimals(data.forecast_availability, this.record.fields.forecast_availability.digits[1]) >= utils.round_decimals(data.product_qty, this.record.fields.forecast_availability.digits[1]);
