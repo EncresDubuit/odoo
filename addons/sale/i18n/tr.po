@@ -13,7 +13,6 @@
 # Mehmet Demirel <mdemirell@gmail.com>, 2020
 # Erdem Keskin <erdemkeskines@gmail.com>, 2020
 # ANIL TAN SAĞIR <anils@projetgrup.com>, 2020
-# Tugay Hatıl <tugayh@projetgrup.com>, 2020
 # Ayhan KIZILTAN <akiziltan76@hotmail.com>, 2020
 # Martin Trigaux, 2020
 # Ertuğrul Güreş <ertugrulg@projetgrup.com>, 2020
@@ -29,6 +28,7 @@
 # Nadir Gazioglu <nadirgazioglu@gmail.com>, 2021
 # Ediz Duman <neps1192@gmail.com>, 2021
 # Ozlem Cikrikci <ozlemc@eskayazilim.com.tr>, 2022
+# Tugay Hatıl <tugayh@projetgrup.com>, 2022
 # Levent Karakaş <levent@mektup.at>, 2022
 # 
 msgid ""
@@ -53,12 +53,12 @@ msgstr "Alınan Veriler"
 #. module: sale
 #: model:ir.model.fields,field_description:sale.field_sale_report__nbr
 msgid "# of Lines"
-msgstr "Satır Sayısı"
+msgstr "Satır Adedi"
 
 #. module: sale
 #: model:ir.model.fields,field_description:sale.field_payment_transaction__sale_order_ids_nbr
 msgid "# of Sales Orders"
-msgstr "# Satış Siparişleri"
+msgstr "Satış Sipariş Adedi"
 
 #. module: sale
 #: model:mail.template,report_name:sale.email_template_edi_sale
@@ -96,7 +96,7 @@ msgstr "&amp;nbsp;"
 #: model_terms:ir.ui.view,arch_db:sale.report_saleorder_document
 #: model_terms:ir.ui.view,arch_db:sale.sale_order_portal_content_totals_table
 msgid "&amp;nbsp;<span>on</span>&amp;nbsp;"
-msgstr "&amp;nbsp; <span>Üzerinden</span>&amp;nbsp;"
+msgstr "&amp;nbsp; <span>matrah</span>&amp;nbsp;"
 
 #. module: sale
 #: model:ir.actions.report,print_report_name:sale.action_report_pro_forma_invoice
@@ -1352,7 +1352,7 @@ msgstr "Tekliflerinizi ve siparişlerinizi özelleştirin."
 #. module: sale
 #: model:ir.model.fields,field_description:sale.field_res_config_settings__module_delivery_dhl
 msgid "DHL Express Connector"
-msgstr ""
+msgstr "DHL Ekspres Bağlayıcı"
 
 #. module: sale
 #: model_terms:ir.ui.view,arch_db:sale.view_order_product_search
@@ -2625,7 +2625,7 @@ msgstr "Sipariş"
 #: model:ir.model.fields,field_description:sale.field_sale_report__order_id
 #: model_terms:ir.ui.view,arch_db:sale.report_saleorder_document
 msgid "Order #"
-msgstr "Sipariş Sayısı"
+msgstr "Sipariş #"
 
 #. module: sale
 #: model_terms:ir.ui.view,arch_db:sale.sale_onboarding_order_confirmation_step
@@ -4449,6 +4449,17 @@ msgstr ""
 "Burada satış siparişlerinde görünecek olan iletişim türünü "
 "belirleyebilirsiniz.Ödeme yöntemini seçtiklerinde müşteriye iletişim bilgisi"
 " verilecektir."
+
+#. module: sale
+#: code:addons/sale/models/product_product.py:0
+#: code:addons/sale/models/product_template.py:0
+#, python-format
+msgid ""
+"You cannot change the product's type because it is already used in sales "
+"orders."
+msgstr ""
+"Satış siparişlerinde zaten kullanıldığı için ürünün türünü "
+"değiştiremezsiniz."
 
 #. module: sale
 #: code:addons/sale/models/sale.py:0
