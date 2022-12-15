@@ -131,7 +131,7 @@
                             <td t-if="docs['multiple_product']" t-esc="line['product']['display_name']"/>
                             <td class="text-right"><t t-if="not line['replenishment_filled']">- </t><t t-esc="line['quantity']" t-options='{"widget": "float", "decimal_precision": "Product Unit of Measure"}'/></td>
                             <td t-esc="line['uom_id'].name" groups="uom.group_uom"/>
-                            <td t-attf-class="#{not line['replenishment_filled'] and 'o_grid_warning'}">
+                            <td t-attf-class="#{not line['replenishment_filled'] and 'o_grid_warning'}" name="usedby_cell">
                                 <a t-if="line['document_out']"
                                     t-attf-href="#" t-esc="line['document_out'].name"
                                     class="font-weight-bold" view-type="form"
